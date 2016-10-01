@@ -36,7 +36,7 @@ class Pry
           @current_pry_instance = instance
           yield
         ensure
-          @current_pry_instance = nil 
+          @current_pry_instance = nil
         end
       end
     end
@@ -48,7 +48,19 @@ class Pry
     end
 
     def call str, options
-      BondCompleter.with_pry(@pry) {BondCompleter.bond.agent.call(str, get_full_line_input || str)}
+      results = BondCompleter.with_pry(@pry) {BondCompleter.bond.agent.call(str, get_full_line_input || str)}
+      # Fix issue where a completion for @foo turns into @@foo
+      # (not sure why it happens; this just hacks around it).
+      if results
+        results.map! do |result|
+          if ['@', '$'].include?(result[0])
+            result[1..-1]
+          else
+            result
+          end
+        end
+      end
+      results
     end
 
     protected
